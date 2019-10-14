@@ -16,8 +16,8 @@
  * Record of distance measurement.
  */
 struct measurementRecord {
-  int angle;
-  int distance;
+  float angle;
+  float distance;
 };
 
 
@@ -38,9 +38,11 @@ LIDARLite lidar;
  */
 void clearEEPROM()
 {
-  for (int i = 0; i < MEASUREMENT_COUNT; ++i) {
+  for (int i = 0; i < MEASUREMENT_COUNT; ++i)
+  {
+    int memoryPointer = i * sizeof(measurementRecord);
     measurementRecord record{0, NAN};
-    EEPROM.put(i, record);
+    EEPROM.put(memoryPointer, record);
   }
   EEPROM.commit();
 }
@@ -76,7 +78,7 @@ void serverSetup()
 
 
 /**
- * ESP setup.
+ * Setup of UART, EEPROM, LiDAR-Lite and server.
  */
 void setup() 
 {
@@ -91,16 +93,42 @@ void setup()
   lidar.begin(0, true);
   lidar.configure(0);
   
-  //server setup
+  // server setup
   serverSetup();
 }
 
 
 /**
- * Sending distance measurement data.
+ * Sending distance measurement data in JSON format.
  */
 void handleData()
 {
+  String json = "{\"data\": [";
+  for (int idx = 0; idx < MEASUREMENT_COUNT; ++idx) 
+  {
+    int memoryPointer = idx * sizeof(measurementRecord);
+    
+    measurementRecord record;
+    EEPROM.get(memoryPointer, record);
+
+    if (! (isnan(record.angle) || isnan(record.distance)))
+    {
+      json += "{";
+      json += "\"angle\":";
+      json += record.angle;
+      json += ",\"distance\":";
+      json += record.distance;
+      json += "}";
+      
+      if (idx + 1 != MEASUREMENT_COUNT)
+      {
+        json += ",";
+      }
+    }
+  }
+  json += "]}";
+
+  server.send(200, "text/json", json);
 }
 
 
@@ -109,4 +137,5 @@ void handleData()
  */
 void loop() 
 {
+  server.handleClient();
 }
