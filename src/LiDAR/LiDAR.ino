@@ -3,13 +3,13 @@
  * @author  Karel Ondřej (xondre09)
  * @date    14. 10. 2019
  * 
- * @brief   2D LiDAR
+ * @brief   2D LiDAR with ESP-WROOM-32
  */
 
-#include <ESP8266WebServer.h>
+#include <ESP32WebServer.h>
 #include <LIDARLite.h>
 
-#include "FS.h"
+#include "SPIFFS.h"
 
 
 /**
@@ -28,13 +28,13 @@ const int MEMORY_SIZE = MEASUREMENT_COUNT * sizeof(measurementRecord);
 const char ssid[] = "SEM-LiDAR";
 const char password[] = "semprojekt";
 
-os_timer_t myTimer;
+hw_timer_t* timer = NULL;
 bool doMeasurement;
 
 int measurementNumber = 0;
 measurementRecord buffer[MEASUREMENT_COUNT];
 
-ESP8266WebServer server(80);
+ESP32WebServer server(80);
 LIDARLite lidar;
 
 
@@ -81,16 +81,16 @@ void serverSetup()
   Serial.print("IP address: ");
   Serial.println(myIP);
 
-  Serial.print("File system begin...");
+  Serial.println("File system begin...");
   SPIFFS.begin();
   
-  Serial.print("Routing...");
+  Serial.println("Routing...");
   server.begin();
   server.on("/data", handleData);
   server.serveStatic("/", SPIFFS, "/index.html");
   server.serveStatic("/css", SPIFFS, "/css");
   server.serveStatic("/js", SPIFFS, "/js");
-  Serial.print("...configuring done.");
+  Serial.println("...configuring done.");
 }
 
 /**
@@ -111,7 +111,7 @@ void handleData()
     {
       json += "{";
       json += "\"angle\":";
-      json += record.angle;
+      json += String(record.angle, 4);
       json += ",\"distance\":";
       json += record.distance;
       json += "}";
@@ -132,7 +132,15 @@ void handleData()
  * LiDAR
  *******************************************************************************/
 /**
- * 
+ * A function called after a timer interrupt.
+ */
+void IRAM_ATTR measurementTimerCallback()
+{
+  doMeasurement = true;
+}
+ 
+/**
+ * Initialization of LiDAR-Lite.
  */
 void lidarSetup(void)
 {
@@ -140,9 +148,11 @@ void lidarSetup(void)
   lidar.configure(0);
 
   doMeasurement = true;
-  
-  os_timer_setfn(&myTimer, measurementTimerCallback, NULL);
-  os_timer_arm(&myTimer, MEASUREMENT_INTERVAL, true);
+
+  timer = timerBegin(0, 80, true);
+  timerAttachInterrupt(timer, &measurementTimerCallback, true);
+  timerAlarmWrite(timer, MEASUREMENT_INTERVAL*1000, true);
+  timerAlarmEnable(timer);
 }
 
 /**
@@ -152,20 +162,12 @@ void distanceMeasurement()
 {
   measurementRecord record;
 
-  record.angle = (float)measurementNumber / (float)MEASUREMENT_COUNT;
+  record.angle = 360.f / (float)MEASUREMENT_COUNT * (float)measurementNumber;
   record.distance = (float)lidar.distance();
 
   writeMeasurementRecord(measurementNumber, record);
 }
 
-/**
- * A function called after a timer interrupt.
- */
-void measurementTimerCallback(void *pArg)
-{
-  doMeasurement = true;
-}
- 
 
 /********************************************************************************
  * SETUP AND MAIN LOOP
@@ -175,16 +177,16 @@ void measurementTimerCallback(void *pArg)
  */
 void setup() 
 {
-  delay(1000);
+  delay(2000);
   Serial.begin(115200);
 
   clearBuffer();
+
+  // server setup
+  serverSetup();
   
   // LiDAR-Lite setup
   lidarSetup();
-  
-  // server setup
-  serverSetup();
 }
 
 /**
@@ -201,7 +203,8 @@ void loop()
     if (measurementNumber == 0)
     {
       Serial.print("Distance: ");
-      Serial.println(buffer[0].distance);
+      Serial.print(buffer[0].distance);
+      Serial.println(" cm");
     }
     measurementNumber += 1;
     measurementNumber %= MEASUREMENT_COUNT;
