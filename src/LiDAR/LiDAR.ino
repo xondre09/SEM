@@ -6,24 +6,15 @@
  * @brief   2D LiDAR with ESP-WROOM-32
  */
 
+#include <ESPmDNS.h>
 #include <ESP32WebServer.h>
 #include <LIDARLite.h>
 
 #include "SPIFFS.h"
 
-
-/**
- * Record of distance measurement.
- */
-struct measurementRecord {
-  float angle;
-  float distance;
-};
-
 const int MEASUREMENT_COUNT = 360; // degree
 const int CYCLE_TIME = 1000; // [ms]
 const int MEASUREMENT_INTERVAL = CYCLE_TIME / MEASUREMENT_COUNT;
-const int MEMORY_SIZE = MEASUREMENT_COUNT * sizeof(measurementRecord);
 
 const char ssid[] = "SEM-LiDAR";
 const char password[] = "semprojekt";
@@ -32,7 +23,7 @@ hw_timer_t* timer = NULL;
 bool doMeasurement;
 
 int measurementNumber = 0;
-measurementRecord buffer[MEASUREMENT_COUNT];
+int buffer[MEASUREMENT_COUNT];
 
 ESP32WebServer server(80);
 LIDARLite lidar;
@@ -48,15 +39,15 @@ void clearBuffer()
 {
   for (int i = 0; i < MEASUREMENT_COUNT; ++i)
   {
-    measurementRecord record{0, NAN};
-    writeMeasurementRecord(i, record);
+    int distance = 0;
+    writeMeasurementRecord(i, distance);
   }
 }
 
 /**
  * Write distance measurement record to buffer;
  */
-void writeMeasurementRecord(int idx, measurementRecord record)
+void writeMeasurementRecord(int idx, int record)
 {
   buffer[idx] = record;
 }
@@ -70,27 +61,33 @@ void writeMeasurementRecord(int idx, measurementRecord record)
  */
 void serverSetup()
 {
-  
-  Serial.print("Configuring access point...");
-  
+  Serial.println("Configuring access point:");
   WiFi.mode(WIFI_AP);
   WiFi.softAP(ssid, password);
-  
-  IPAddress myIP = WiFi.softAPIP();
-  
-  Serial.print("IP address: ");
-  Serial.println(myIP);
 
-  Serial.println("File system begin...");
-  SPIFFS.begin();
+  Serial.println("done");
   
-  Serial.println("Routing...");
-  server.begin();
+  IPAddress myIP = WiFi.softAPIP();  
+  Serial.print("File system initialization: ");  
+  SPIFFS.begin();
+  Serial.println("done");
+
+  Serial.print("HTTP server initialization: ");
   server.on("/data", handleData);
   server.serveStatic("/", SPIFFS, "/index.html");
   server.serveStatic("/css", SPIFFS, "/css");
   server.serveStatic("/js", SPIFFS, "/js");
-  Serial.println("...configuring done.");
+  server.begin();
+  Serial.println("done");
+
+  if (! MDNS.begin("lidar"))
+  {
+    Serial.println("Error setting up MDNS responder!");
+  }
+
+  Serial.println("HTTP server started.");
+  Serial.print("IP address: ");
+  Serial.println(myIP);
 }
 
 /**
@@ -98,28 +95,20 @@ void serverSetup()
  */
 void handleData()
 {
-  String json = "{\"data\": [";
+  String json = "{\"size\":";
+  json += MEASUREMENT_COUNT;
+  json += ",\"data\":[";
 
-  int memoryPointer;
-  measurementRecord record;
+  int distance;
   for (int idx = 0; idx < MEASUREMENT_COUNT; ++idx) 
   {
-    memoryPointer = idx * sizeof(measurementRecord);
-    record = buffer[idx];
+    distance = buffer[idx];
 
-    if (! (isnan(record.angle) || isnan(record.distance)))
+    json += distance;
+    
+    if (idx + 1 != MEASUREMENT_COUNT)
     {
-      json += "{";
-      json += "\"angle\":";
-      json += String(record.angle, 4);
-      json += ",\"distance\":";
-      json += record.distance;
-      json += "}";
-      
-      if (idx + 1 != MEASUREMENT_COUNT)
-      {
-        json += ",";
-      }
+      json += ",";
     }
   }
   json += "]}";
@@ -160,12 +149,9 @@ void lidarSetup(void)
  */
 void distanceMeasurement()
 {
-  measurementRecord record;
+  int distance = lidar.distance();
 
-  record.angle = 360.f / (float)MEASUREMENT_COUNT * (float)measurementNumber;
-  record.distance = (float)lidar.distance();
-
-  writeMeasurementRecord(measurementNumber, record);
+  writeMeasurementRecord(measurementNumber, distance);
 }
 
 
@@ -203,7 +189,7 @@ void loop()
     if (measurementNumber == 0)
     {
       Serial.print("Distance: ");
-      Serial.print(buffer[0].distance);
+      Serial.print(buffer[0]);
       Serial.println(" cm");
     }
     measurementNumber += 1;
