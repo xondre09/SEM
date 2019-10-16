@@ -1,19 +1,23 @@
-$.getJSON("https://api.myjson.com/bins/u2h2i", function(json) {
+function UpdateDistance(){
+$.getJSON("https://api.myjson.com/bins/bxrgw", function(json) {
     console.log(json); // this will show the info it in firebug console
 	console.log(json.data[0].distance);
 	labels = []
 	distance = []
 	for (var i in json.data){
-		labels.push(json.data[i].angle);
-		distance.push(json.data[i].distance);
+		if (i%15 == 0){
+			labels.push(i);
+		}else{
+			labels.push(" ");
+		}
+		distance.push(json.data[i]);
 	}
 	myChart.data.labels = labels;
 	myChart.data.datasets[0].data=distance;
 	myChart.update();
-	console.log(labels);
-	console.log(distance);
 
-});
+	});
+}
 
 var ctx = document.getElementById('myChart');
 var myChart = new Chart(ctx, {
@@ -36,3 +40,6 @@ var myChart = new Chart(ctx, {
 
     }
 });
+UpdateDistance();
+setInterval(UpdateDistance, 1000);
+
