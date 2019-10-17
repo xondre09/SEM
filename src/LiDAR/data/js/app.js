@@ -1,5 +1,5 @@
 function UpdateDistance(){
-$.getJSON("https://api.myjson.com/bins/bxrgw", function(json) {
+$.getJSON("data", function(json) {
     console.log(json); // this will show the info it in firebug console
 	console.log(json.data[0].distance);
 	labels = []
@@ -37,7 +37,12 @@ var myChart = new Chart(ctx, {
         }]
     },
     options: {
-
+	scale: {
+		ticks: {
+			
+		        beginAtZero: true
+		}
+	}
     }
 });
 UpdateDistance();
