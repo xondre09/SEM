@@ -1,6 +1,10 @@
 function updateTextInput(val) {
 	          document.getElementById('textInput').value=val; 
 		          }
+function updateTextInput1(val){
+	document.getElementById('speedlabel').value=val;
+}
+
 jQuery(document).ready(function(){
 
 	    jQuery('.ajaxform').submit( function() {

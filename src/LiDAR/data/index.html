@@ -13,7 +13,9 @@
 <body>
 	<form action="" method="GET" class="ajaxform">
 	Frames: <input type="range"  min="0" max="360" onchange="updateTextInput(this.value);"><br>
-		<input type="text" id="textInput" name="frames" value="180" >
+	<input type="text" id="textInput" name="frames" value="180" ><br>
+	Speed: <input type="range"  min="500" max="1500" onchange="updateTextInput1(this.value);"><br>
+		<input type="text" id="speedlabel" name="speed" value="1000" >
 		<input type="submit">
 	</form>
 	
