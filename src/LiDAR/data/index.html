@@ -12,9 +12,15 @@
 			-ms-user-select: none;
 		}
 	</style>
+
 <body>
+	<form action="" method="GET" class="ajaxform">
+	Frames: <input type="range"  min="0" max="360" onchange="updateTextInput(this.value);"><br>
+		<input type="text" id="textInput" name="frames" value="180" >
+		<input type="submit">
+	</form>
 	
-		<canvas id="myChart" width="400" height="400"></canvas>
+		<canvas id="myChart" width="50%"></canvas>
 
 	<button id="randomizeData">Randomize Data</button>
 	<script src="app.js"></script>

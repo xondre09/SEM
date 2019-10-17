@@ -1,5 +1,22 @@
+function updateTextInput(val) {
+	          document.getElementById('textInput').value=val; 
+		          }
+jQuery(document).ready(function(){
+
+	    jQuery('.ajaxform').submit( function() {
+
+		            $.ajax({
+			                url     : "./settings",
+			                type    : $(this).attr('method'),
+			                data    : $(this).serialize(),
+			            });
+
+			            return false;
+				        });
+
+});
 function UpdateDistance(){
-$.getJSON("https://api.myjson.com/bins/bxrgw", function(json) {
+$.getJSON("https://api.myjson.com/bins/osxuo", function(json) {
     console.log(json); // this will show the info it in firebug console
 	console.log(json.data[0].distance);
 	labels = []
@@ -41,5 +58,5 @@ var myChart = new Chart(ctx, {
     }
 });
 UpdateDistance();
-setInterval(UpdateDistance, 1000);
+//setInterval(UpdateDistance, 1000);
 
