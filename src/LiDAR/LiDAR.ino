@@ -6,15 +6,29 @@
  * @brief   2D LiDAR with ESP-WROOM-32
  */
 
+#include <EEPROM.h>
 #include <ESPmDNS.h>
 #include <ESP32WebServer.h>
 #include <LIDARLite.h>
 
 #include "SPIFFS.h"
 
-const int MEASUREMENT_COUNT = 360; // degree
-const int CYCLE_TIME = 1000; // [ms]
-const int MEASUREMENT_INTERVAL = CYCLE_TIME / MEASUREMENT_COUNT;
+#define EEPROM_SIZE (2*sizeof(int))
+
+#define EEPROM_MEASUREMENT_COUNT_OFFSET 0
+#define EEPROM_PERIOD_OFFSET sizeof(int)
+
+#define MIN_MEASUREMENT_COUNT 1
+#define MAX_MEASUREMENT_COUNT 720
+#define MEASUREMENT_COUNT_DEFAULT 360
+
+#define MIN_PERIOD 500
+#define MAX_PERIOD 1500
+#define PERIOD_DEFAULT 1000
+
+int measurementCount; 
+int period; 
+int measurementInterval;
 
 const char ssid[] = "SEM-LiDAR";
 const char password[] = "semprojekt";
@@ -23,7 +37,7 @@ hw_timer_t* timer = NULL;
 bool doMeasurement;
 
 int measurementNumber = 0;
-int buffer[MEASUREMENT_COUNT];
+int buffer[MAX_MEASUREMENT_COUNT];
 
 ESP32WebServer server(80);
 LIDARLite lidar;
@@ -37,7 +51,7 @@ LIDARLite lidar;
  */
 void clearBuffer()
 {
-  for (int i = 0; i < MEASUREMENT_COUNT; ++i)
+  for (int i = 0; i < measurementCount; ++i)
   {
     int distance = 0;
     writeMeasurementRecord(i, distance);
@@ -54,6 +68,82 @@ void writeMeasurementRecord(int idx, int record)
 
 
 /********************************************************************************
+ * EEPROM 
+ *******************************************************************************/
+/**
+ * Load settings from EEPROM.
+ */
+void loadSettings()
+{
+  Serial.print("Load settings: ");
+  EEPROM.get(EEPROM_MEASUREMENT_COUNT_OFFSET, measurementCount);
+  EEPROM.get(EEPROM_PERIOD_OFFSET, period);
+
+  if (measurementCount <= 0 || MAX_MEASUREMENT_COUNT < measurementCount)
+  {
+    measurementCount = MEASUREMENT_COUNT_DEFAULT;
+  }
+  if (period < MIN_PERIOD || MAX_PERIOD < period)
+  {
+    period = PERIOD_DEFAULT;
+  }
+  
+  Serial.println("done");
+  Serial.print("Measurement count: ");
+  Serial.println(measurementCount);
+  Serial.print("Period: ");
+  Serial.print(period);
+  Serial.println(" ms");
+}
+
+
+/********************************************************************************
+ * LiDAR
+ *******************************************************************************/
+/**
+ * A function called after a timer interrupt.
+ */
+void IRAM_ATTR measurementTimerCallback()
+{
+  doMeasurement = true;
+}
+
+/** 
+ * Update measurement interval and set timer alarm. 
+ */
+void updateMeasurementInterval()
+{
+  measurementInterval = period / measurementCount;
+  timerAlarmWrite(timer, measurementInterval*1000, true);
+}
+
+/**
+ * Initialization of LiDAR-Lite.
+ */
+void lidarSetup(void)
+{
+  lidar.begin(0, true);
+  lidar.configure(0);
+
+  doMeasurement = true;
+
+  timer = timerBegin(0, 80, true);
+  timerAttachInterrupt(timer, &measurementTimerCallback, true);
+  updateMeasurementInterval();
+  timerAlarmEnable(timer);
+}
+
+/**
+ * Distance measurement with LiDAR-Lite.
+ */
+void distanceMeasurement()
+{
+  int distance = lidar.distance();
+  writeMeasurementRecord(measurementNumber, distance);
+}
+
+
+/********************************************************************************
  * SERVER
  *******************************************************************************/
 /**
@@ -61,7 +151,7 @@ void writeMeasurementRecord(int idx, int record)
  */
 void serverSetup()
 {
-  Serial.println("Configuring access point:");
+  Serial.print("Configuring access point: ");
   WiFi.mode(WIFI_AP);
   WiFi.softAP(ssid, password);
 
@@ -74,6 +164,7 @@ void serverSetup()
 
   Serial.print("HTTP server initialization: ");
   server.on("/data", handleData);
+  server.on("/settings", HTTP_GET, handleSettings);
   server.serveStatic("/", SPIFFS, "/index.html");
   server.serveStatic("/css", SPIFFS, "/css");
   server.serveStatic("/js", SPIFFS, "/js");
@@ -96,17 +187,17 @@ void serverSetup()
 void handleData()
 {
   String json = "{\"size\":";
-  json += MEASUREMENT_COUNT;
+  json += measurementCount;
   json += ",\"data\":[";
 
   int distance;
-  for (int idx = 0; idx < MEASUREMENT_COUNT; ++idx) 
+  for (int idx = 0; idx < measurementCount; ++idx) 
   {
     distance = buffer[idx];
 
     json += distance;
     
-    if (idx + 1 != MEASUREMENT_COUNT)
+    if (idx + 1 != measurementCount)
     {
       json += ",";
     }
@@ -116,45 +207,60 @@ void handleData()
   server.send(200, "text/json", json);
 }
 
-
-/********************************************************************************
- * LiDAR
- *******************************************************************************/
 /**
- * A function called after a timer interrupt.
+ * Change settings.
  */
-void IRAM_ATTR measurementTimerCallback()
+void handleSettings()
 {
-  doMeasurement = true;
+  Serial.println("Settings:");
+  int value;
+  if (server.hasArg("frames"))
+  {
+    value = server.arg("frames").toInt();
+    if (value < MIN_MEASUREMENT_COUNT || MAX_MEASUREMENT_COUNT < value)
+    {
+      Serial.print("Measurement count must be in interval <");
+      Serial.print(MIN_MEASUREMENT_COUNT);
+      Serial.print(", ");
+      Serial.print(MAX_MEASUREMENT_COUNT);
+      Serial.println(">.");
+    }
+    else
+    {
+      measurementCount = value;
+      EEPROM.put(EEPROM_MEASUREMENT_COUNT_OFFSET, measurementCount);
+    }
+  }
+
+  if (server.hasArg("speed"))
+  {
+    value = server.arg("speed").toInt();
+    if (value < MIN_PERIOD|| MAX_PERIOD < value)
+    {
+      Serial.print("Period must be in interval <");
+      Serial.print(MIN_PERIOD);
+      Serial.print(", ");
+      Serial.print(MAX_PERIOD);
+      Serial.println(">.");
+    }
+    else
+    {
+      period = value;
+      EEPROM.put(EEPROM_PERIOD_OFFSET, period);
+    }
+  }
+  Serial.print("Measurement count: ");
+  Serial.println(measurementCount);
+  Serial.print("Period: ");
+  Serial.print(period);
+  Serial.println(" ms");
+
+  EEPROM.commit();
+  clearBuffer();
+  updateMeasurementInterval();
+  
+  server.send(200);
 }
- 
-/**
- * Initialization of LiDAR-Lite.
- */
-void lidarSetup(void)
-{
-  lidar.begin(0, true);
-  lidar.configure(0);
-
-  doMeasurement = true;
-
-  timer = timerBegin(0, 80, true);
-  timerAttachInterrupt(timer, &measurementTimerCallback, true);
-  timerAlarmWrite(timer, MEASUREMENT_INTERVAL*1000, true);
-  timerAlarmEnable(timer);
-}
-
-/**
- * Distance measurement with LiDAR-Lite.
- */
-void distanceMeasurement()
-{
-  int distance = lidar.distance();
-
-  writeMeasurementRecord(measurementNumber, distance);
-}
-
-
 /********************************************************************************
  * SETUP AND MAIN LOOP
  *******************************************************************************/
@@ -165,6 +271,9 @@ void setup()
 {
   delay(2000);
   Serial.begin(115200);
+
+  EEPROM.begin(EEPROM_SIZE);
+  loadSettings();
 
   clearBuffer();
 
@@ -186,13 +295,7 @@ void loop()
   {
     distanceMeasurement();
     doMeasurement = false;
-    if (measurementNumber == 0)
-    {
-      Serial.print("Distance: ");
-      Serial.print(buffer[0]);
-      Serial.println(" cm");
-    }
     measurementNumber += 1;
-    measurementNumber %= MEASUREMENT_COUNT;
+    measurementNumber %= measurementCount;
   }
 }
