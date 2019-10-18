@@ -1,20 +1,21 @@
 /**
  * @file    LiDAR.ino
+ * @author  Filip Januš (xjanusXX)
+ * @author  Marek Barvíř (xbarviXX)
  * @author  Karel Ondřej (xondre09)
- * @date    14. 10. 2019
+ * @date    18. 10. 2019
  * 
  * @brief   2D LiDAR with ESP-WROOM-32
  */
 
 #include <EEPROM.h>
+#include <ESPAsyncWebServer.h>
 #include <ESPmDNS.h>
-#include <ESP32WebServer.h>
 #include <LIDARLite.h>
+#include <SPIFFS.h>
 
-#include "SPIFFS.h"
 
 #define EEPROM_SIZE (2*sizeof(int))
-
 #define EEPROM_MEASUREMENT_COUNT_OFFSET 0
 #define EEPROM_PERIOD_OFFSET sizeof(int)
 
@@ -39,7 +40,7 @@ bool doMeasurement;
 int measurementNumber = 0;
 int buffer[MAX_MEASUREMENT_COUNT];
 
-ESP32WebServer server(80);
+AsyncWebServer server(80);
 LIDARLite lidar;
 
 
@@ -157,10 +158,7 @@ void serverSetup()
 
   Serial.println("done");
   
-  IPAddress myIP = WiFi.softAPIP();  
-  Serial.print("File system initialization: ");  
-  SPIFFS.begin();
-  Serial.println("done");
+  IPAddress myIP = WiFi.softAPIP(); 
 
   Serial.print("HTTP server initialization: ");
   server.on("/data", handleData);
@@ -184,7 +182,7 @@ void serverSetup()
 /**
  * Sending distance measurement data in JSON format.
  */
-void handleData()
+void handleData(AsyncWebServerRequest *request)
 {
   String json = "{\"size\":";
   json += measurementCount;
@@ -204,19 +202,19 @@ void handleData()
   }
   json += "]}";
 
-  server.send(200, "text/json", json);
+  request->send(200, "application/json", json);
 }
 
 /**
  * Change settings.
  */
-void handleSettings()
+void handleSettings(AsyncWebServerRequest *request)
 {
   Serial.println("Settings:");
   int value;
-  if (server.hasArg("frames"))
+  if (request->hasArg("frames"))
   {
-    value = server.arg("frames").toInt();
+    value = request->arg("frames").toInt();
     if (value < MIN_MEASUREMENT_COUNT || MAX_MEASUREMENT_COUNT < value)
     {
       Serial.print("Measurement count must be in interval <");
@@ -232,9 +230,9 @@ void handleSettings()
     }
   }
 
-  if (server.hasArg("speed"))
+  if (request->hasArg("speed"))
   {
-    value = server.arg("speed").toInt();
+    value = request->arg("speed").toInt();
     if (value < MIN_PERIOD|| MAX_PERIOD < value)
     {
       Serial.print("Period must be in interval <");
@@ -259,7 +257,7 @@ void handleSettings()
   clearBuffer();
   updateMeasurementInterval();
   
-  server.send(200);
+  request->send(200);
 }
 /********************************************************************************
  * SETUP AND MAIN LOOP
@@ -274,8 +272,11 @@ void setup()
 
   EEPROM.begin(EEPROM_SIZE);
   loadSettings();
-
   clearBuffer();
+   
+  Serial.print("File system initialization: ");  
+  SPIFFS.begin();
+  Serial.println("done");
 
   // server setup
   serverSetup();
@@ -289,8 +290,6 @@ void setup()
  */
 void loop() 
 {
-  server.handleClient();
-
   if (doMeasurement)
   {
     distanceMeasurement();
