@@ -163,9 +163,10 @@ void serverSetup()
   Serial.print("HTTP server initialization: ");
   server.on("/data", handleData);
   server.on("/settings", HTTP_GET, handleSettings);
-  server.serveStatic("/", SPIFFS, "/index.html");
-  server.serveStatic("/css", SPIFFS, "/css");
-  server.serveStatic("/js", SPIFFS, "/js");
+  server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
+    request->send(SPIFFS, "/index.html", "text/html");
+  });
+  server.serveStatic("/js/", SPIFFS, "/js/");
   server.begin();
   Serial.println("done");
 
