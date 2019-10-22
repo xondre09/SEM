@@ -31,11 +31,12 @@ $.getJSON("data", function(json) {
 		}else{
 			labels.push(" ");
 		}
-		distance.push(json.data[i]);
+		distance.push(json.data[i].distance);
 	}
 	myChart.data.labels = labels;
 	myChart.data.datasets[0].data=distance;
-	myChart.update();
+	console.log(distance);
+        myChart.update();
 
 	});
 }
@@ -46,7 +47,7 @@ var myChart = new Chart(ctx, {
     data: {
         labels: [],
         datasets: [{
-            label: '# of Votes',
+            label: 'cm',
             data: [],
             backgroundColor: [
                 'rgba(25, 207, 30, 0.2)'
@@ -67,5 +68,5 @@ var myChart = new Chart(ctx, {
     }
 });
 UpdateDistance();
-setInterval(UpdateDistance, 1000);
+setInterval(UpdateDistance, 10000);
 
