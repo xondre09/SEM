@@ -4,7 +4,11 @@ function updateTextInput(val) {
 function updateTextInput1(val){
 	document.getElementById('speedlabel').value=val;
 }
-
+function hideLoad(){
+    $('.loadbackground').fadeOut("slow");
+    $('.lds-hourglass').fadeOut("slow");
+    $('.loadinglabel').fadeOut("slow");
+}
 jQuery(document).ready(function(){
 
 	    jQuery('.ajaxform').submit( function() {
@@ -67,6 +71,11 @@ var myChart = new Chart(ctx, {
 	}
     }
 });
+setTimeout(function() {
+        hideLoad();
+},2000);
+
 UpdateDistance();
+
 setInterval(UpdateDistance, 10000);
 

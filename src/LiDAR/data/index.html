@@ -12,7 +12,9 @@
 	</style>
 
 <body>
-<div>
+<h1>2D Lidar </h1>
+<div class="loadbackground"></div>
+<div class="mydiv">
 	<form action="" method="GET" class="ajaxform">
 	Frames: <input type="range"  min="0" max="360" onchange="updateTextInput(this.value);"><br>
 	<input type="text" id="textInput" name="frames" value="180" ><br>
@@ -22,7 +24,8 @@
 	</form>
 	
 		<canvas id="myChart"></canvas>
-
+                <label class="loadinglabel">Loading ...</label>
+                <div class="lds-hourglass"></div>
             </div>
 	<script type="text/javascript"  src="js/chart.js"></script>
 	<script type="text/javascript"  src="js/jquery-3.4.1.js"></script>
