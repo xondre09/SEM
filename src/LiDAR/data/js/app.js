@@ -1,3 +1,4 @@
+var visible = true;
 function updateTextInput(val) {
 	          document.getElementById('textInput').value=val; 
 		          }
@@ -5,8 +6,14 @@ function updateTextInput1(val){
 	document.getElementById('speedlabel').value=val;
 }
 function onoff(val){
-	alert($('#myonoffswitch').checked);
-	$('canvas').css("display","none");
+        if (visible){
+	    $('canvas').css("display","none");
+            visible = false;
+            $('')
+        }else{
+	    $('canvas').css("display","block");
+            visible = true;
+        }
 }
 function hideLoad(){
     $('.loadbackground').fadeOut("slow");
