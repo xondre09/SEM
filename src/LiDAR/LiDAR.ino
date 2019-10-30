@@ -114,8 +114,8 @@ void IRAM_ATTR measurementTimerCallback()
  */
 void updateMeasurementInterval()
 {
-  measurementInterval = period / measurementCount;
-  timerAlarmWrite(timer, measurementInterval*1000, true);
+  measurementInterval = (period*1000) / measurementCount;
+  timerAlarmWrite(timer, measurementInterval, true);
 }
 
 /**
@@ -167,6 +167,7 @@ void serverSetup()
     request->send(SPIFFS, "/index.html", "text/html");
   });
   server.serveStatic("/js/", SPIFFS, "/js/");
+  server.serveStatic("/css/", SPIFFS, "/css/");
   server.begin();
   Serial.println("done");
 
@@ -248,15 +249,19 @@ void handleSettings(AsyncWebServerRequest *request)
       EEPROM.put(EEPROM_PERIOD_OFFSET, period);
     }
   }
+  EEPROM.commit();
+  clearBuffer();
+  updateMeasurementInterval();
+
   Serial.print("Measurement count: ");
   Serial.println(measurementCount);
   Serial.print("Period: ");
   Serial.print(period);
   Serial.println(" ms");
+  Serial.print("Timer interval: ");
+  Serial.print(measurementInterval);
+  Serial.println(" us");
 
-  EEPROM.commit();
-  clearBuffer();
-  updateMeasurementInterval();
   
   request->send(200);
 }

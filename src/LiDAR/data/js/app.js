@@ -35,7 +35,7 @@ $.getJSON("data", function(json) {
 		}else{
 			labels.push(" ");
 		}
-		distance.push(json.data[i].distance);
+		distance.push(json.data[i]);
 	}
 	myChart.data.labels = labels;
 	myChart.data.datasets[0].data=distance;
@@ -76,6 +76,5 @@ setTimeout(function() {
 },2000);
 
 UpdateDistance();
-
-setInterval(UpdateDistance, 10000);
+setInterval(UpdateDistance, 1000);
 
