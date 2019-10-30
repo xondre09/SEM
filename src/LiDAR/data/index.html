@@ -1,7 +1,10 @@
 <!doctype html>
 <html> 
 <head>
+	
+	<script type="text/javascript"  src="js/jquery-3.4.1.js"></script>
 	<link rel="stylesheet" type="text/css" href="css/style.css">
+
 	<title>2D Lidar</title>
 	<style>
 		canvas {
@@ -13,16 +16,26 @@
 
 <body>
 <h1>2D Lidar </h1>
-<div class="loadbackground"></div>
+<div class="loadbackground" id="bkg"></div>
 <div class="mydiv">
 	<form action="" method="GET" class="ajaxform">
+<div class="onoffswitch">
+    <input type="checkbox" name="onoffswitch" class="onoffswitch-checkbox" id="myonoffswitch" onclick="onoff(this.vale);" checked>
+    <label class="onoffswitch-label" for="myonoffswitch">
+        <span class="onoffswitch-inner"></span>
+        <span class="onoffswitch-switch"></span>
+    </label>
+</div><br>
+
 	Frames: <input type="range"  min="0" max="360" onchange="updateTextInput(this.value);"><br>
 	<input type="text" id="textInput" name="frames" value="180" ><br>
 	Speed: <input type="range"  min="500" max="1500" onchange="updateTextInput1(this.value);"><br>
 		<input type="text" id="speedlabel" name="speed" value="1000" ><br>
 		<input type="submit">
 	</form>
-	
+<form method="get" action="data" style="border:none; margin-top:31%; width:10%;">                                               
+   <input type="submit" value="Download values">
+</form>
 		<canvas id="myChart"></canvas>
                 <label class="loadinglabel">Loading ...</label>
                 <div class="lds-hourglass"></div>

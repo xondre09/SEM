@@ -4,6 +4,10 @@ function updateTextInput(val) {
 function updateTextInput1(val){
 	document.getElementById('speedlabel').value=val;
 }
+function onoff(val){
+	alert($('#myonoffswitch').checked);
+	$('canvas').css("display","none");
+}
 function hideLoad(){
     $('.loadbackground').fadeOut("slow");
     $('.lds-hourglass').fadeOut("slow");
