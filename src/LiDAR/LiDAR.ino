@@ -1,7 +1,7 @@
 /**
  * @file    LiDAR.ino
- * @author  Filip Januš (xjanusXX)
- * @author  Marek Barvíř (xbarviXX)
+ * @author  Marek Barvíř (xbarvi00)
+ * @author  Filip Januš (xjanus09)
  * @author  Karel Ondřej (xondre09)
  * @date    18. 10. 2019
  * 
@@ -23,9 +23,9 @@
 #define MAX_MEASUREMENT_COUNT 720
 #define MEASUREMENT_COUNT_DEFAULT 360
 
-#define MIN_PERIOD 500
-#define MAX_PERIOD 1500
-#define PERIOD_DEFAULT 1000
+#define MIN_PERIOD 3500
+#define MAX_PERIOD 4500
+#define PERIOD_DEFAULT 4000
 
 int measurementCount; 
 int period; 
@@ -262,8 +262,14 @@ void handleSettings(AsyncWebServerRequest *request)
   Serial.print(measurementInterval);
   Serial.println(" us");
 
+  String json = "{";
+  json += "\"frames\":";
+  json += measurementCount;
+  json += ",\"speed\":";
+  json += period;
+  json += "}";
   
-  request->send(200);
+  request->send(200, "application/json", json);
 }
 /********************************************************************************
  * SETUP AND MAIN LOOP
