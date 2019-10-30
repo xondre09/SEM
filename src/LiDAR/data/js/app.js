@@ -34,6 +34,13 @@ jQuery(document).ready(function(){
 				        });
 
 });
+
+$(document).ready(function (){
+$.getJSON("settings", function(json) {
+        updateTextInput(json.frames);
+        updateTextInput1(json.speed);
+	});
+});
 function UpdateDistance(){
 $.getJSON("data", function(json) {
     console.log(json); // this will show the info it in firebug console
