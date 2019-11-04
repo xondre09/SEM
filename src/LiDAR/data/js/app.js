@@ -1,4 +1,5 @@
 var visible = true;
+var interval;
 function updateTextInput(val) {
 	          document.getElementById('textInput').value=val; 
 		          }
@@ -9,9 +10,9 @@ function onoff(val){
         if (visible){
 //	    $('canvas').css("display","none");
             visible = false;
-            $('')
+            clearInterval(interval);
         }else{
-//	    $('canvas').css("display","block");
+            interval = setInterval(UpdateDistance,1000);
             visible = true;
         }
 }
@@ -42,7 +43,7 @@ $.getJSON("settings", function(json) {
 	});
 });
 function UpdateDistance(){
-$.getJSON("data", function(json) {
+$.getJSON("https://api.myjson.com/bins/kchgo", function(json) {
     console.log(json); // this will show the info it in firebug console
 	console.log(json.data[0].distance);
 	labels = []
@@ -94,8 +95,8 @@ setTimeout(function() {
 },2000);
 
 UpdateDistance();
-var interval = setInterval(UpdateDistance, 1000);
-if (!visible){
-    clearInterval(interval);
-}
+interval = setInterval(UpdateDistance, 1000);
+//if (!visible){
+  //  clearInterval(interval);
+//}
 
