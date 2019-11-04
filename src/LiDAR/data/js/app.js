@@ -7,11 +7,11 @@ function updateTextInput1(val){
 }
 function onoff(val){
         if (visible){
-	    $('canvas').css("display","none");
+//	    $('canvas').css("display","none");
             visible = false;
             $('')
         }else{
-	    $('canvas').css("display","block");
+//	    $('canvas').css("display","block");
             visible = true;
         }
 }
@@ -94,5 +94,7 @@ setTimeout(function() {
 },2000);
 
 UpdateDistance();
-setInterval(UpdateDistance, 1000);
+if (visible){
+    setInterval(UpdateDistance, 1000);
+}
 
