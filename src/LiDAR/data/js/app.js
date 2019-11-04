@@ -94,7 +94,8 @@ setTimeout(function() {
 },2000);
 
 UpdateDistance();
+var interval = setInterval(UpdateDistance, 1000);
 if (visible){
-    setInterval(UpdateDistance, 1000);
+    clearInterval(interval);
 }
 
