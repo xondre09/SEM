@@ -204,7 +204,7 @@ void handleData(AsyncWebServerRequest *request)
   }
   json += "]}";
 
-  request->send(200, "application/json", json);
+  request->send(200, "data:text/json", json);
 }
 
 /**
