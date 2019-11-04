@@ -1,11 +1,30 @@
 var visible = true;
 var interval;
+var distance = [];
+var rotation = 0;
+
 function updateTextInput(val) {
 	          document.getElementById('textInput').value=val; 
 		          }
 function updateTextInput1(val){
 	document.getElementById('speedlabel').value=val;
 }
+
+function arrayRotate(arr, count) {
+      count -= arr.length * Math.floor(count / arr.length);
+        arr.push.apply(arr, arr.splice(0, count));
+          return arr;
+}
+
+function updateRotation(val){
+
+    document.getElementById('rotation').value=val;
+    rotation = val;
+    distance = arrayRotate(distance,val);
+    myChart.data.datasets[0].data=distance;
+    myChart.update();
+}
+
 function onoff(val){
         if (visible){
 //	    $('canvas').css("display","none");
@@ -56,6 +75,7 @@ $.getJSON("https://api.myjson.com/bins/kchgo", function(json) {
 		}
 		distance.push(json.data[i]);
 	}
+        distance = arrayRotate(distance,rotation);
 	myChart.data.labels = labels;
 	myChart.data.datasets[0].data=distance;
 	console.log(distance);
